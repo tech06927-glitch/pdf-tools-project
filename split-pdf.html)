@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Split PDF - PDFFlow</title>
+    <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 min-h-screen flex flex-col">
+    <nav class="p-6 bg-white border-b border-slate-100 flex justify-between items-center">
+        <a href="index.html" class="text-2xl font-bold text-blue-600 tracking-tight">PDFFlow</a>
+        <a href="index.html" class="text-sm font-semibold text-slate-500">Back to Tools</a>
+    </nav>
+
+    <main class="flex-grow flex items-center justify-center p-6">
+        <div class="max-w-xl w-full bg-white p-10 rounded-[2.5rem] shadow-xl text-center border border-slate-100">
+            <div class="inline-block p-4 bg-purple-100 rounded-2xl text-3xl mb-6">✂️</div>
+            <h1 class="text-3xl font-extrabold text-slate-900 mb-2">Split PDF</h1>
+            <p class="text-slate-500 mb-8">Separate your PDF pages instantly.</p>
+
+            <div class="space-y-4">
+                <input type="file" id="pdf-input" accept=".pdf" class="hidden">
+                <label for="pdf-input" class="block w-full py-4 border-2 border-dashed border-slate-200 rounded-2xl cursor-pointer hover:bg-slate-50 transition">
+                    <span id="file-label" class="text-slate-600 font-medium font-medium">Click to upload PDF</span>
+                </label>
+
+                <div id="settings" class="hidden space-y-4 pt-4 text-left">
+                    <label class="block text-sm font-bold text-slate-700 uppercase tracking-wider">Page to extract:</label>
+                    <input type="number" id="page-num" value="1" min="1" class="w-full p-4 bg-slate-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500">
+                    <button onclick="splitPDF()" class="w-full bg-purple-600 text-white py-4 rounded-2xl font-bold shadow-lg hover:bg-purple-700 transition">Split and Download</button>
+                </div>
+            </div>
+            <p id="status" class="mt-4 text-sm text-purple-600 font-semibold"></p>
+        </div>
+    </main>
+
+    <script>
+        const input = document.getElementById('pdf-input');
+        const settings = document.getElementById('settings');
+        const fileLabel = document.getElementById('file-label');
+
+        input.onchange = () => {
+            if(input.files.length > 0) {
+                fileLabel.innerText = input.files[0].name;
+                settings.classList.remove('hidden');
+            }
+        }
+
+        async function splitPDF() {
+            const status = document.getElementById('status');
+            const pageNum = parseInt(document.getElementById('page-num').value);
+            status.innerText = "Extracting page...";
+
+            try {
+                const arrayBuffer = await input.files[0].arrayBuffer();
+                const pdf = await PDFLib.PDFDocument.load(arrayBuffer);
+                const totalPages = pdf.getPageCount();
+
+                if (pageNum > totalPages || pageNum < 1) {
+                    alert(`Invalid page number! This PDF has ${totalPages} pages.`);
+                    return;
+                }
+
+                const newPdf = await PDFLib.PDFDocument.create();
+                const [copiedPage] = await newPdf.copyPages(pdf, [pageNum - 1]);
+                newPdf.addPage(copiedPage);
+
+                const bytes = await newPdf.save();
+                const blob = new Blob([bytes], { type: 'application/pdf' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `page_${pageNum}.pdf`;
+                link.click();
+                status.innerText = "Page extracted successfully!";
+            } catch (e) {
+                status.innerText = "Error processing PDF.";
+            }
+        }
+    </script>
+</body>
+</html>
