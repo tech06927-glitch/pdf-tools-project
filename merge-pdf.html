@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Merge PDF - Free PDF Tools</title>
+    <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <nav class="bg-white shadow-md p-4">
+        <div class="container mx-auto flex justify-between items-center">
+            <a href="index.html" class="text-2xl font-bold text-blue-600">FreePDFTools</a>
+            <a href="index.html" class="text-gray-600 hover:text-blue-600">← Back to Tools</a>
+        </div>
+    </nav>
+
+    <main class="container mx-auto px-4 py-12 max-w-2xl">
+        <div class="bg-white p-8 rounded-2xl shadow-lg border border-gray-100 text-center">
+            <h1 class="text-3xl font-bold mb-2">Merge PDF Files</h1>
+            <p class="text-gray-500 mb-8">Combine multiple PDFs into one document in seconds.</p>
+
+            <div class="border-2 border-dashed border-blue-200 rounded-xl p-10 mb-6 bg-blue-50">
+                <input type="file" id="pdf-input" accept=".pdf" multiple class="hidden">
+                <label for="pdf-input" class="cursor-pointer">
+                    <div class="text-blue-500 text-5xl mb-4">📂</div>
+                    <span class="bg-blue-600 text-white px-6 py-2 rounded-full font-semibold hover:bg-blue-700 transition">Select PDF Files</span>
+                </label>
+                <p id="file-count" class="mt-4 text-sm text-gray-600">No files selected</p>
+            </div>
+
+            <button onclick="mergePDFs()" id="merge-btn" class="w-full bg-green-500 text-white py-3 rounded-xl font-bold text-lg hover:bg-green-600 transition hidden">
+                Merge and Download
+            </button>
+            
+            <div id="status" class="mt-4 text-blue-600 font-medium"></div>
+        </div>
+    </main>
+
+    <script>
+        const fileInput = document.getElementById('pdf-input');
+        const fileCount = document.getElementById('file-count');
+        const mergeBtn = document.getElementById('merge-btn');
+        const status = document.getElementById('status');
+
+        fileInput.addEventListener('change', () => {
+            const files = fileInput.files;
+            if (files.length > 1) {
+                fileCount.innerText = `${files.length} files selected`;
+                mergeBtn.classList.remove('hidden');
+            } else {
+                fileCount.innerText = "Please select at least 2 files to merge.";
+                mergeBtn.classList.add('hidden');
+            }
+        });
+
+        async function mergePDFs() {
+            status.innerText = "Processing... Please wait.";
+            const files = fileInput.files;
+            const mergedPdf = await PDFLib.PDFDocument.create();
+
+            for (const file of files) {
+                const arrayBuffer = await file.arrayBuffer();
+                const pdf = await PDFLib.PDFDocument.load(arrayBuffer);
+                const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
+                copiedPages.forEach((page) => mergedPdf.addPage(page));
+            }
+
+            const mergedPdfBytes = await mergedPdf.save();
+            const blob = new Blob([mergedPdfBytes], { type: 'application/pdf' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'merged_document.pdf';
+            link.click();
+            
+            status.innerText = "Done! Your file has been downloaded.";
+        }
+    </script>
+</body>
+</html>
